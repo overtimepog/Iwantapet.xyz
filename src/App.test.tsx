@@ -1,3 +1,5 @@
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
@@ -44,6 +46,24 @@ describe('Iwantapet MVP UI', () => {
     expect(screen.queryByRole('button', { name: /demo account menu/i })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: /account/i })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /sign in to save matches/i })).toBeInTheDocument();
+  });
+
+  it('anchors the account dropdown directly under the username trigger', () => {
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const accountMenuRule = css.match(/\.account-menu\s*\{(?<body>[^}]+)\}/)?.groups?.body ?? '';
+
+    expect(accountMenuRule).toContain('position: absolute');
+    expect(accountMenuRule).toContain('top: calc(100% + .5rem)');
+    expect(accountMenuRule).toContain('right: 0');
+    expect(accountMenuRule).not.toContain('position: fixed');
+  });
+
+  it('keeps the account dropdown inside mobile viewports while staying attached to the username row', () => {
+    const css = readFileSync(join(process.cwd(), 'src/styles.css'), 'utf8');
+    const mobileRule = css.match(/@media \(max-width: 760px\) \{[\s\S]*?\.account-menu\s*\{(?<body>[^}]+)\}/)?.groups?.body ?? '';
+
+    expect(mobileRule).toContain('left: 0');
+    expect(mobileRule).toContain('right: auto');
   });
 
   it('shows the quiz as multiple-choice pages for signed-in users and supports None allergies', async () => {

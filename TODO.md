@@ -9,7 +9,7 @@
 - [x] Gate questionnaire behind authenticated users
 - [x] Convert questionnaire to multiple-choice multi-page flow
 - [x] Add account dropdown with settings and logout
-- [x] Keep account dropdown within mobile viewport
+- [x] Keep account dropdown within mobile viewport while attached under username
 - [x] Add outreach draft agent with approval guardrails
 - [x] Polish responsive UI
 - [x] Add setup and architecture documentation
