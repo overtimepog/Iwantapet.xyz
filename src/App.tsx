@@ -40,6 +40,7 @@ function scoreClass(score: number) {
 }
 
 function optionLabel(value: string) {
+  if (value === '') return 'None';
   return value.replace(/_/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
 }
 
@@ -150,7 +151,8 @@ export default function App() {
   }
 
   function singleChoice<K extends QuestionnaireKey>(key: K, label: string, values: string[]) {
-    const currentValue = Array.isArray(questionnaire[key]) ? (questionnaire[key] as string[])[0] : String(questionnaire[key]);
+    const rawValue = questionnaire[key];
+    const currentValue = Array.isArray(rawValue) ? (rawValue[0] ?? '') : String(rawValue);
     return (
       <fieldset className="choice-group">
         <legend>{label}</legend>

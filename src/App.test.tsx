@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { describe, expect, it } from 'vitest';
 import App from './App';
@@ -46,7 +46,7 @@ describe('Iwantapet MVP UI', () => {
     expect(screen.getByRole('heading', { name: /sign in to save matches/i })).toBeInTheDocument();
   });
 
-  it('shows the quiz as multiple-choice pages for signed-in users', async () => {
+  it('shows the quiz as multiple-choice pages for signed-in users and supports None allergies', async () => {
     render(<App />);
 
     await userEvent.click(screen.getByRole('button', { name: /sign in/i }));
@@ -61,6 +61,15 @@ describe('Iwantapet MVP UI', () => {
     await userEvent.click(screen.getByRole('button', { name: /next/i }));
     expect(screen.getByText(/step 2 of 4/i)).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: /household/i })).toBeInTheDocument();
+    const allergies = within(screen.getByRole('group', { name: /allergies/i }));
+    expect(allergies.getByRole('radio', { name: /^none$/i })).toBeChecked();
+
+    await userEvent.click(allergies.getByRole('radio', { name: /dog dander/i }));
+    expect(allergies.getByRole('radio', { name: /dog dander/i })).toBeChecked();
+
+    await userEvent.click(allergies.getByRole('radio', { name: /^none$/i }));
+    expect(allergies.getByRole('radio', { name: /^none$/i })).toBeChecked();
+    expect(allergies.getByRole('radio', { name: /dog dander/i })).not.toBeChecked();
   });
 
   it('completes questionnaire, shows matches, saves a pet, and enforces outreach approval before simulated send', async () => {
