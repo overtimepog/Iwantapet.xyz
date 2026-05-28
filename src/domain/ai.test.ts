@@ -6,7 +6,10 @@ describe('mock AI provider', () => {
     const ai = createMockAiProvider();
 
     await expect(ai.summarizeUserProfile({ zipCode: '16801', preferredSpecies: ['cat'], monthlyBudget: 100 })).resolves.toContain('16801');
-    await expect(ai.explainPetMatch({ name: 'Luna' }, { score: 92, reasons: ['calm temperament'], warnings: [] })).resolves.toContain('Luna');
+    const explanation = await ai.explainPetMatch({ name: 'Luna' }, { score: 92, reasons: ['calm temperament.'], warnings: [] });
+    expect(explanation).toContain('Luna');
+    expect(explanation).toContain('because calm temperament.');
+    expect(explanation).not.toContain('..');
     await expect(ai.draftShelterMessage({ name: 'Truen' }, { name: 'Luna' })).resolves.toContain('Luna');
     await expect(ai.suggestQuestionsToAskShelter({ name: 'Luna' })).resolves.toContain('medical history');
   });

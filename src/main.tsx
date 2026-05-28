@@ -7,6 +7,7 @@ import { DbConnection, ErrorContext } from './module_bindings/index.ts';
 
 const HOST = import.meta.env.VITE_SPACETIMEDB_HOST ?? 'ws://localhost:3000';
 const DB_NAME = import.meta.env.VITE_SPACETIMEDB_DB_NAME ?? 'react-ts';
+const ENABLE_SPACETIMEDB = import.meta.env.VITE_ENABLE_SPACETIMEDB;
 const TOKEN_KEY = `${HOST}/${DB_NAME}/auth_token`;
 
 const onConnect = (_conn: DbConnection, identity: Identity, token: string) => {
@@ -22,21 +23,29 @@ const onDisconnect = () => {
 };
 
 const onConnectError = (_ctx: ErrorContext, err: Error) => {
-  console.log('Error connecting to SpacetimeDB:', err);
+  console.warn('SpacetimeDB is unavailable; continuing in local demo mode.', err);
 };
 
-const connectionBuilder = DbConnection.builder()
-  .withUri(HOST)
-  .withDatabaseName(DB_NAME)
-  .withToken(localStorage.getItem(TOKEN_KEY) || undefined)
-  .onConnect(onConnect)
-  .onDisconnect(onDisconnect)
-  .onConnectError(onConnectError);
+function renderAppWithOptionalSpacetime() {
+  if (ENABLE_SPACETIMEDB === 'true') {
+    const connectionBuilder = DbConnection.builder()
+      .withUri(HOST)
+      .withDatabaseName(DB_NAME)
+      .withToken(localStorage.getItem(TOKEN_KEY) || undefined)
+      .onConnect(onConnect)
+      .onDisconnect(onDisconnect)
+      .onConnectError(onConnectError);
+
+    return (
+      <SpacetimeDBProvider connectionBuilder={connectionBuilder}>
+        <App />
+      </SpacetimeDBProvider>
+    );
+  }
+
+  return <App />;
+}
 
 createRoot(document.getElementById('root')!).render(
-  <StrictMode>
-    <SpacetimeDBProvider connectionBuilder={connectionBuilder}>
-      <App />
-    </SpacetimeDBProvider>
-  </StrictMode>
+  <StrictMode>{renderAppWithOptionalSpacetime()}</StrictMode>
 );

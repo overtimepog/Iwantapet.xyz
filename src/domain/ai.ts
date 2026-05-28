@@ -13,7 +13,10 @@ export function createMockAiProvider(): AiProvider {
       return `Pet seeker near ${profile.zipCode ?? 'your area'} looking for ${(profile.preferredSpecies ?? []).join(', ') || 'a pet'} with a monthly budget around $${profile.monthlyBudget ?? 'flexible'}.`;
     },
     async explainPetMatch(pet, match) {
-      return `${pet.name ?? 'This pet'} is a ${match.score}/100 match because ${match.reasons.join(', ') || 'the profile is compatible'}.${match.warnings.length ? ` Watch-outs: ${match.warnings.join(', ')}.` : ''}`;
+      const reasons = match.reasons.map((reason) => reason.replace(/[.!?]+$/, '').toLowerCase());
+      const reasonText = reasons.length ? reasons.join('; ') : 'the profile is compatible';
+      const warningText = match.warnings.length ? ` Watch-outs: ${match.warnings.map((warning) => warning.replace(/[.!?]+$/, '')).join('; ')}.` : '';
+      return `${pet.name ?? 'This pet'} is a ${match.score}/100 match because ${reasonText}.${warningText}`;
     },
     async draftShelterMessage(user, pet) {
       return `Hi, my name is ${user.name ?? 'a prospective adopter'}. I am interested in ${pet.name ?? 'this pet'} and would love to learn more about temperament, adoption steps, and availability.`;
