@@ -6,6 +6,10 @@
 - [x] Add failing matching engine tests
 - [x] Implement deterministic pet matching engine
 - [x] Add Firebase Auth
+- [x] Gate questionnaire behind authenticated users
+- [x] Convert questionnaire to multiple-choice multi-page flow
+- [x] Add account dropdown with settings and logout
+- [x] Keep account dropdown within mobile viewport
 - [x] Add outreach draft agent with approval guardrails
 - [x] Polish responsive UI
 - [x] Add setup and architecture documentation

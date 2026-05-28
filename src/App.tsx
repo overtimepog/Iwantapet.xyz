@@ -4,11 +4,12 @@ import { scorePetMatch } from './domain/matching';
 import { approveDraft, createOutreachDraft, markDraftSent, type OutreachDraft } from './domain/outreach';
 import { validateQuestionnaireResponse } from './domain/questionnaire';
 import type { MatchResult, Pet, QuestionnaireResponse } from './domain/types';
-import { signInWithEmail, signInWithGoogle, type AuthUser } from './firebaseAuth';
+import { logout as logoutFromAuth, signInWithEmail, signInWithGoogle, type AuthUser } from './firebaseAuth';
 import { mockPets, organizations } from './mockPetData';
 import './styles.css';
 
 const ai = createMockAiProvider();
+const TOTAL_QUIZ_STEPS = 4;
 
 const initialQuestionnaire: QuestionnaireResponse = {
   zipCode: '16801',
@@ -29,12 +30,17 @@ const initialQuestionnaire: QuestionnaireResponse = {
   adoptionUrgency: 'this_month',
 };
 
-type View = 'landing' | 'auth' | 'quiz' | 'dashboard';
+type View = 'landing' | 'auth' | 'quiz' | 'dashboard' | 'settings';
+type QuestionnaireKey = keyof QuestionnaireResponse;
 
 function scoreClass(score: number) {
   if (score >= 85) return 'excellent';
   if (score >= 65) return 'good';
   return 'low';
+}
+
+function optionLabel(value: string) {
+  return value.replace(/_/g, ' ').replace(/\b\w/g, (letter: string) => letter.toUpperCase());
 }
 
 export default function App() {
@@ -43,11 +49,14 @@ export default function App() {
   const [email, setEmail] = useState('demo@iwantapet.xyz');
   const [password, setPassword] = useState('petlover123');
   const [questionnaire, setQuestionnaire] = useState<QuestionnaireResponse>(initialQuestionnaire);
+  const [quizStep, setQuizStep] = useState(1);
   const [submitted, setSubmitted] = useState(false);
   const [savedPetIds, setSavedPetIds] = useState<string[]>([]);
   const [draft, setDraft] = useState<OutreachDraft | null>(null);
   const [draftMessage, setDraftMessage] = useState('');
   const [aiExplanation, setAiExplanation] = useState<Record<string, string>>({});
+  const [accountMenuOpen, setAccountMenuOpen] = useState(false);
+  const [authPrompt, setAuthPrompt] = useState('');
   const [error, setError] = useState('');
 
   const matches = useMemo(() => {
@@ -57,17 +66,55 @@ export default function App() {
       .sort((a, b) => b.match.score - a.match.score);
   }, [questionnaire]);
 
+  function openAuth(message = '') {
+    setAuthPrompt(message);
+    setView('auth');
+  }
+
+  function startQuiz() {
+    setAccountMenuOpen(false);
+    if (!user) {
+      openAuth('Please sign in before taking the quiz so we can save your answers and matches.');
+      return;
+    }
+    setError('');
+    setQuizStep(1);
+    setView('quiz');
+  }
+
   async function handleEmailLogin(event: FormEvent) {
     event.preventDefault();
     const signedIn = await signInWithEmail(email, password);
     setUser(signedIn);
+    setAuthPrompt('');
     setView('dashboard');
   }
 
   async function handleGoogleLogin() {
     const signedIn = await signInWithGoogle();
     setUser(signedIn);
+    setAuthPrompt('');
     setView('dashboard');
+  }
+
+  async function handleLogout() {
+    await logoutFromAuth();
+    setUser(null);
+    setSavedPetIds([]);
+    setDraft(null);
+    setDraftMessage('');
+    setAiExplanation({});
+    setAccountMenuOpen(false);
+    openAuth('You have been logged out. Sign in again to continue.');
+  }
+
+  function openSettings() {
+    setAccountMenuOpen(false);
+    setView('settings');
+  }
+
+  function setQuestionnaireValue<K extends QuestionnaireKey>(key: K, value: QuestionnaireResponse[K]) {
+    setQuestionnaire((current) => ({ ...current, [key]: value }));
   }
 
   function submitQuestionnaire(event?: FormEvent) {
@@ -102,13 +149,104 @@ export default function App() {
     setDraft(markDraftSent(draft, { simulated: true }));
   }
 
+  function singleChoice<K extends QuestionnaireKey>(key: K, label: string, values: string[]) {
+    const currentValue = Array.isArray(questionnaire[key]) ? (questionnaire[key] as string[])[0] : String(questionnaire[key]);
+    return (
+      <fieldset className="choice-group">
+        <legend>{label}</legend>
+        <div className="choice-grid">
+          {values.map((value) => (
+            <label className="choice-card" key={`${String(key)}-${value}`}>
+              <input
+                type="radio"
+                name={String(key)}
+                value={value}
+                checked={currentValue === value}
+                onChange={() => {
+                  if (key === 'preferredSpecies') setQuestionnaireValue(key, [value] as QuestionnaireResponse[K]);
+                  else if (key === 'allergies') setQuestionnaireValue(key, (value ? [value] : []) as QuestionnaireResponse[K]);
+                  else if (key === 'monthlyBudget') setQuestionnaireValue(key, Number(value) as QuestionnaireResponse[K]);
+                  else setQuestionnaireValue(key, value as QuestionnaireResponse[K]);
+                }}
+              />
+              <span>{optionLabel(value)}</span>
+            </label>
+          ))}
+        </div>
+      </fieldset>
+    );
+  }
+
+  function renderQuizStep() {
+    if (quizStep === 1) {
+      return (
+        <>
+          <h2>Home basics</h2>
+          <label className="text-question">ZIP code<input value={questionnaire.zipCode} onChange={(e) => setQuestionnaireValue('zipCode', e.target.value)} /></label>
+          {singleChoice('housingType', 'Housing type', ['apartment', 'house', 'townhome'])}
+          {singleChoice('rentOrOwn', 'Do you rent or own?', ['rent', 'own'])}
+          {singleChoice('landlordRestrictions', 'Pet restrictions', ['none', 'no large dogs', 'cats only', 'small pets only'])}
+        </>
+      );
+    }
+    if (quizStep === 2) {
+      return (
+        <>
+          <h2>Household</h2>
+          {singleChoice('allergies', 'Allergies', ['', 'dog_dander', 'cat_dander'])}
+          {singleChoice('kidsInHome', 'Kids in home', ['none', 'young_kids', 'older_kids'])}
+          {singleChoice('otherPets', 'Other pets', ['none', 'cat', 'dog', 'multiple'])}
+          {singleChoice('petExperience', 'Pet experience', ['none', 'some', 'experienced'])}
+        </>
+      );
+    }
+    if (quizStep === 3) {
+      return (
+        <>
+          <h2>Pet preferences</h2>
+          {singleChoice('preferredSpecies', 'Preferred species', ['cat', 'dog', 'rabbit', 'bird'])}
+          {singleChoice('preferredSize', 'Preferred size', ['small', 'medium', 'large', 'any'])}
+          {singleChoice('energyLevel', 'Energy level', ['low', 'medium', 'high'])}
+          {singleChoice('agePreference', 'Age preference', ['baby', 'young', 'adult', 'senior', 'any'])}
+        </>
+      );
+    }
+    return (
+      <>
+        <h2>Care fit</h2>
+        {singleChoice('monthlyBudget', 'Monthly budget', ['75', '120', '200', '350'])}
+        {singleChoice('schedule', 'Schedule', ['work_from_home', 'hybrid', 'office_full_time', 'travel_often'])}
+        {singleChoice('groomingTolerance', 'Grooming tolerance', ['low', 'medium', 'high'])}
+        {singleChoice('adoptionUrgency', 'Adoption urgency', ['this_week', 'this_month', 'just_researching'])}
+      </>
+    );
+  }
+
   return (
     <main>
       <nav className="topbar" aria-label="Main navigation">
         <button className="brand" onClick={() => setView('landing')}>🐾 Iwantapet.xyz</button>
         <div className="nav-actions">
-          {user ? <span className="user-pill">{user.displayName}</span> : <button className="ghost" onClick={() => setView('auth')}>Account</button>}
-          <button className="primary small" onClick={() => setView('quiz')}>Start quiz</button>
+          {user ? (
+            <div className="account-menu-wrap">
+              <button
+                className="user-pill account-trigger"
+                aria-label={`${user.displayName} account menu`}
+                aria-haspopup="menu"
+                aria-expanded={accountMenuOpen}
+                onClick={() => setAccountMenuOpen((open) => !open)}
+              >
+                {user.displayName} <span aria-hidden="true">⌄</span>
+              </button>
+              {accountMenuOpen && (
+                <div className="account-menu" role="menu" aria-label="Account menu">
+                  <button role="menuitem" onClick={openSettings}>Settings</button>
+                  <button role="menuitem" onClick={handleLogout}>Log out</button>
+                </div>
+              )}
+            </div>
+          ) : <button className="ghost" onClick={() => openAuth()}>Account</button>}
+          <button className="primary small" onClick={startQuiz}>Start quiz</button>
         </div>
       </nav>
 
@@ -119,8 +257,8 @@ export default function App() {
             <h1>Find your perfect pet without getting overwhelmed.</h1>
             <p className="subtitle">Quiz → local pets → AI match → contact shelter. Iwantapet ranks adoptable pets around you and explains each fit in plain English.</p>
             <div className="hero-actions">
-              <button className="primary" onClick={() => setView('quiz')}>Find my perfect pet</button>
-              <button className="secondary" onClick={() => setView('auth')}>Sign in</button>
+              <button className="primary" onClick={startQuiz}>Find my perfect pet</button>
+              <button className="secondary" onClick={() => openAuth()}>Sign in</button>
             </div>
             <div className="trust-row">
               <span>Safety-first outreach</span><span>Local shelter ready</span><span>No contact without approval</span>
@@ -137,6 +275,7 @@ export default function App() {
         <section className="panel auth-panel">
           <p className="eyebrow">Firebase Auth</p>
           <h2>Sign in to save matches</h2>
+          {authPrompt && <p className="notice" role="status">{authPrompt}</p>}
           <form onSubmit={handleEmailLogin} className="form-grid">
             <label>Email address<input value={email} onChange={(e) => setEmail(e.target.value)} type="email" /></label>
             <label>Password<input value={password} onChange={(e) => setPassword(e.target.value)} type="password" /></label>
@@ -147,29 +286,29 @@ export default function App() {
         </section>
       )}
 
-      {view === 'quiz' && (
-        <section className="panel">
+      {view === 'settings' && (
+        <section className="panel auth-panel">
+          <p className="eyebrow">Account settings</p>
+          <h2>Settings</h2>
+          <p className="muted">Profile, notification, and shelter-contact preferences will live here. Logout is available from the account menu.</p>
+        </section>
+      )}
+
+      {view === 'quiz' && user && (
+        <section className="panel quiz-panel">
           <p className="eyebrow">Friendly onboarding</p>
-          <h2>Lifestyle questionnaire</h2>
+          <p className="step-indicator">Step {quizStep} of {TOTAL_QUIZ_STEPS}</p>
           {error && <p className="error" role="alert">{error}</p>}
-          <form className="questionnaire" onSubmit={submitQuestionnaire}>
-            <label>ZIP code<input value={questionnaire.zipCode} onChange={(e) => setQuestionnaire({ ...questionnaire, zipCode: e.target.value })} /></label>
-            <label>Housing type<select value={questionnaire.housingType} onChange={(e) => setQuestionnaire({ ...questionnaire, housingType: e.target.value })}><option>apartment</option><option>house</option><option>townhome</option></select></label>
-            <label>Rent or own<select value={questionnaire.rentOrOwn} onChange={(e) => setQuestionnaire({ ...questionnaire, rentOrOwn: e.target.value })}><option>rent</option><option>own</option></select></label>
-            <label>Landlord pet restrictions<input value={questionnaire.landlordRestrictions} onChange={(e) => setQuestionnaire({ ...questionnaire, landlordRestrictions: e.target.value })} /></label>
-            <label>Allergies<select value={questionnaire.allergies[0] ?? ''} onChange={(e) => setQuestionnaire({ ...questionnaire, allergies: e.target.value ? [e.target.value] : [] })}><option value="">None</option><option value="dog_dander">Dog dander</option><option value="cat_dander">Cat dander</option></select></label>
-            <label>Monthly budget<input type="number" value={questionnaire.monthlyBudget} onChange={(e) => setQuestionnaire({ ...questionnaire, monthlyBudget: Number(e.target.value) })} /></label>
-            <label>Schedule<select value={questionnaire.schedule} onChange={(e) => setQuestionnaire({ ...questionnaire, schedule: e.target.value })}><option>hybrid</option><option>work_from_home</option><option>office_full_time</option><option>travel_often</option></select></label>
-            <label>Pet experience<select value={questionnaire.petExperience} onChange={(e) => setQuestionnaire({ ...questionnaire, petExperience: e.target.value })}><option>none</option><option>some</option><option>experienced</option></select></label>
-            <label>Kids in home<select value={questionnaire.kidsInHome} onChange={(e) => setQuestionnaire({ ...questionnaire, kidsInHome: e.target.value })}><option>none</option><option>young_kids</option><option>older_kids</option></select></label>
-            <label>Other pets<select value={questionnaire.otherPets} onChange={(e) => setQuestionnaire({ ...questionnaire, otherPets: e.target.value })}><option>none</option><option>cat</option><option>dog</option><option>multiple</option></select></label>
-            <label>Preferred species<select value={questionnaire.preferredSpecies[0]} onChange={(e) => setQuestionnaire({ ...questionnaire, preferredSpecies: [e.target.value as QuestionnaireResponse['preferredSpecies'][number]] })}><option value="cat">Cat</option><option value="dog">Dog</option><option value="rabbit">Rabbit</option><option value="bird">Bird</option></select></label>
-            <label>Preferred size<select value={questionnaire.preferredSize} onChange={(e) => setQuestionnaire({ ...questionnaire, preferredSize: e.target.value as QuestionnaireResponse['preferredSize'] })}><option>small</option><option>medium</option><option>large</option><option>any</option></select></label>
-            <label>Energy level<select value={questionnaire.energyLevel} onChange={(e) => setQuestionnaire({ ...questionnaire, energyLevel: e.target.value as QuestionnaireResponse['energyLevel'] })}><option>low</option><option>medium</option><option>high</option></select></label>
-            <label>Age preference<select value={questionnaire.agePreference} onChange={(e) => setQuestionnaire({ ...questionnaire, agePreference: e.target.value as QuestionnaireResponse['agePreference'] })}><option>baby</option><option>young</option><option>adult</option><option>senior</option><option>any</option></select></label>
-            <label>Grooming tolerance<select value={questionnaire.groomingTolerance} onChange={(e) => setQuestionnaire({ ...questionnaire, groomingTolerance: e.target.value as QuestionnaireResponse['groomingTolerance'] })}><option>low</option><option>medium</option><option>high</option></select></label>
-            <label>Adoption urgency<select value={questionnaire.adoptionUrgency} onChange={(e) => setQuestionnaire({ ...questionnaire, adoptionUrgency: e.target.value })}><option>this_week</option><option>this_month</option><option>just_researching</option></select></label>
-            <button className="primary full" type="submit">Show my matches</button>
+          <form className="questionnaire paged-questionnaire" onSubmit={submitQuestionnaire}>
+            {renderQuizStep()}
+            <div className="quiz-controls full">
+              <button className="secondary" type="button" disabled={quizStep === 1} onClick={() => setQuizStep((step) => Math.max(1, step - 1))}>Back</button>
+              {quizStep < TOTAL_QUIZ_STEPS ? (
+                <button className="primary" type="button" onClick={() => setQuizStep((step) => Math.min(TOTAL_QUIZ_STEPS, step + 1))}>Next</button>
+              ) : (
+                <button className="primary" type="submit">Show my matches</button>
+              )}
+            </div>
           </form>
         </section>
       )}
@@ -178,7 +317,7 @@ export default function App() {
         <section className="dashboard">
           <div className="dashboard-header">
             <div><p className="eyebrow">Dashboard</p><h2>Your best local matches</h2></div>
-            {!submitted && <button className="secondary" onClick={() => setView('quiz')}>Complete questionnaire</button>}
+            {!submitted && <button className="secondary" onClick={startQuiz}>Complete questionnaire</button>}
           </div>
           {matches.length === 0 ? <div className="empty">No pets matched every hard filter. Try broadening species, allergies, or travel distance.</div> : (
             <div className="pet-grid">
