@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { validateQuestionnaireResponse } from './questionnaire';
+import type { QuestionnaireResponse } from './types';
 
-const baseResponse = {
+const baseResponse: QuestionnaireResponse = {
   zipCode: '16801',
   housingType: 'apartment',
   rentOrOwn: 'rent',

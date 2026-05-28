@@ -4,7 +4,7 @@
 - [x] Add failing tests for questionnaire validation
 - [ ] Implement questionnaire flow
 - [x] Add failing matching engine tests
-- [ ] Implement deterministic pet matching engine
+- [x] Implement deterministic pet matching engine
 - [ ] Add Firebase Auth
 - [ ] Add outreach draft agent with approval guardrails
 - [ ] Polish responsive UI
