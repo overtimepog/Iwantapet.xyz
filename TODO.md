@@ -9,5 +9,5 @@
 - [x] Add outreach draft agent with approval guardrails
 - [x] Polish responsive UI
 - [x] Add setup and architecture documentation
-- [ ] Create public GitHub repo and push clean commit history
+- [x] Create public GitHub repo and push clean commit history
 - [x] Verify local tests and builds
