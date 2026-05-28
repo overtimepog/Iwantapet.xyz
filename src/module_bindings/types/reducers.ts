@@ -3,11 +3,30 @@
 
 /* eslint-disable */
 /* tslint:disable */
-import { type Infer as __Infer } from 'spacetimedb';
+import { type Infer as __Infer } from "spacetimedb";
 
 // Import all reducer arg schemas
-import AddReducer from '../add_reducer';
-import SayHelloReducer from '../say_hello_reducer';
+import CreateOutreachDraftReducer from "../create_outreach_draft_reducer";
+import GenerateMatchScoreReducer from "../generate_match_score_reducer";
+import LogAgentActionReducer from "../log_agent_action_reducer";
+import MarkDraftApprovedReducer from "../mark_draft_approved_reducer";
+import MarkDraftSentReducer from "../mark_draft_sent_reducer";
+import SavePetReducer from "../save_pet_reducer";
+import SaveQuestionnaireReducer from "../save_questionnaire_reducer";
+import SeedMockPetDataReducer from "../seed_mock_pet_data_reducer";
+import UnsavePetReducer from "../unsave_pet_reducer";
+import UpsertPetReducer from "../upsert_pet_reducer";
+import UpsertUserProfileReducer from "../upsert_user_profile_reducer";
 
-export type AddParams = __Infer<typeof AddReducer>;
-export type SayHelloParams = __Infer<typeof SayHelloReducer>;
+export type CreateOutreachDraftParams = __Infer<typeof CreateOutreachDraftReducer>;
+export type GenerateMatchScoreParams = __Infer<typeof GenerateMatchScoreReducer>;
+export type LogAgentActionParams = __Infer<typeof LogAgentActionReducer>;
+export type MarkDraftApprovedParams = __Infer<typeof MarkDraftApprovedReducer>;
+export type MarkDraftSentParams = __Infer<typeof MarkDraftSentReducer>;
+export type SavePetParams = __Infer<typeof SavePetReducer>;
+export type SaveQuestionnaireParams = __Infer<typeof SaveQuestionnaireReducer>;
+export type SeedMockPetDataParams = __Infer<typeof SeedMockPetDataReducer>;
+export type UnsavePetParams = __Infer<typeof UnsavePetReducer>;
+export type UpsertPetParams = __Infer<typeof UpsertPetReducer>;
+export type UpsertUserProfileParams = __Infer<typeof UpsertUserProfileReducer>;
+

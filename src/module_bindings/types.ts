@@ -8,9 +8,118 @@ import {
   t as __t,
   type AlgebraicTypeType as __AlgebraicTypeType,
   type Infer as __Infer,
-} from 'spacetimedb';
+} from "spacetimedb";
 
-export const Person = __t.object('Person', {
-  name: __t.string(),
+export const AgentActionLogs = __t.object("AgentActionLogs", {
+  id: __t.u32(),
+  logUserIdentity: __t.identity(),
+  actionType: __t.string(),
+  targetType: __t.string(),
+  targetId: __t.string(),
+  detailsJson: __t.string(),
+  createdAt: __t.timestamp(),
 });
-export type Person = __Infer<typeof Person>;
+export type AgentActionLogs = __Infer<typeof AgentActionLogs>;
+
+export const Matches = __t.object("Matches", {
+  id: __t.u32(),
+  matchUserIdentity: __t.identity(),
+  petExternalId: __t.string(),
+  score: __t.u8(),
+  reasonsJson: __t.string(),
+  warningsJson: __t.string(),
+  filteredOut: __t.u8(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Matches = __Infer<typeof Matches>;
+
+export const Organizations = __t.object("Organizations", {
+  id: __t.u32(),
+  externalId: __t.string(),
+  name: __t.string(),
+  orgType: __t.string(),
+  city: __t.string(),
+  state: __t.string(),
+  zipCode: __t.string(),
+  email: __t.string(),
+  phone: __t.string(),
+  website: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Organizations = __Infer<typeof Organizations>;
+
+export const OutreachDrafts = __t.object("OutreachDrafts", {
+  id: __t.u32(),
+  draftUserIdentity: __t.identity(),
+  petExternalId: __t.string(),
+  organizationExternalId: __t.string(),
+  message: __t.string(),
+  status: __t.string(),
+  approvedAt: __t.string(),
+  sentAt: __t.string(),
+  simulated: __t.u8(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type OutreachDrafts = __Infer<typeof OutreachDrafts>;
+
+export const Pets = __t.object("Pets", {
+  id: __t.u32(),
+  externalId: __t.string(),
+  organizationExternalId: __t.string(),
+  name: __t.string(),
+  species: __t.string(),
+  breed: __t.string(),
+  age: __t.string(),
+  petSize: __t.string(),
+  energyLevel: __t.string(),
+  groomingNeeds: __t.string(),
+  goodWithKids: __t.u8(),
+  goodWithDogs: __t.u8(),
+  goodWithCats: __t.u8(),
+  allergyNotes: __t.string(),
+  monthlyCostCents: __t.u32(),
+  distanceMiles: __t.u32(),
+  description: __t.string(),
+  imageUrl: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Pets = __Infer<typeof Pets>;
+
+export const QuestionnaireResponses = __t.object("QuestionnaireResponses", {
+  id: __t.u32(),
+  questionnaireUserIdentity: __t.identity(),
+  firebaseUid: __t.string(),
+  responseJson: __t.string(),
+  zipCode: __t.string(),
+  preferredSpecies: __t.string(),
+  budgetCents: __t.u32(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type QuestionnaireResponses = __Infer<typeof QuestionnaireResponses>;
+
+export const SavedPets = __t.object("SavedPets", {
+  id: __t.u32(),
+  savedUserIdentity: __t.identity(),
+  petExternalId: __t.string(),
+  savedAt: __t.timestamp(),
+});
+export type SavedPets = __Infer<typeof SavedPets>;
+
+export const Users = __t.object("Users", {
+  id: __t.u32(),
+  userIdentity: __t.identity(),
+  firebaseUid: __t.string(),
+  email: __t.string(),
+  displayName: __t.string(),
+  photoUrl: __t.string(),
+  zipCode: __t.string(),
+  createdAt: __t.timestamp(),
+  updatedAt: __t.timestamp(),
+});
+export type Users = __Infer<typeof Users>;
+

@@ -8,8 +8,10 @@ import {
   t as __t,
   type AlgebraicTypeType as __AlgebraicTypeType,
   type Infer as __Infer,
-} from 'spacetimedb';
+} from "spacetimedb";
 
-export default __t.row({
-  name: __t.string(),
-});
+export default {
+  petExternalId: __t.string(),
+  organizationExternalId: __t.string(),
+  message: __t.string(),
+};
